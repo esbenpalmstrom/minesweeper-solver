@@ -12,10 +12,12 @@ import time
 def FindStartingArea(difficulty):
     """
     Find the game area based on templates using cv and return the bounding box
+    Integrate this function into the MinesweeperInitiator function
     """
 
     if difficulty == "easy":
-        print("havnt made a template for easy yet...")
+        print("no template for easy yet")
+        pass
         return
 
     elif difficulty == "normal":
@@ -92,8 +94,15 @@ def InitiateMinefield():
     pyautogui.click() # click on hard
 
 def MinesweeperInitiator():
-    """ move the cursor to the centre of the field and click to start the game 
-    return the bounding box for the chosen difficulty"""
+    """ 
+    move the cursor to the centre of the field and click to start the game 
+    return the bounding box for the chosen difficulty
+    INPUT:
+        None
+    OUTPUT:
+        top_left: top left coordinates of the box bounding the whole game area of chosen difficulty
+        bottom_right: bottom right coordinates of the box bounding the whole game area of chosen difficulty
+    """
 
     top_left,bottom_right = FindStartingArea(difficulty="hard")
 
@@ -111,6 +120,26 @@ def MinesweeperInitiator():
 
 
 def checkField(top_left_f,bottom_right_f):
+
+    """
+    Check a given field for its value
+    
+    INPUT:
+    top_left_f: top left coordinates of grid field
+    bottom_right_f: bottom right coordinates of grid field
+    
+    OUTPUT:
+    fieldval: integer value describing the contents of the field
+        -2: cleared
+        -1: flag
+        0: unknown/unsolved
+        1: 1
+        2: 2
+        3: 3
+        ..and so on..
+        -3 = bugged/not categorized
+
+    """
 
     w = bottom_right_f[0]-top_left_f[0]
     h = bottom_right_f[1]-top_left_f[1]
@@ -153,7 +182,7 @@ def checkField(top_left_f,bottom_right_f):
     plt.show()
 
 
-    ######### field color values
+    ######### field RGB color values
     #light_grass_rgb = [86,206,170]
     #dark_grass_rgb = [79,199,162]
 
@@ -168,7 +197,7 @@ def checkField(top_left_f,bottom_right_f):
 
     #flag_rbg = [17,64,225]
 
-    #remember to use mirrored of these
+    #remember to use mirrored of these if its BGR
 
 
 
@@ -196,20 +225,22 @@ def checkField(top_left_f,bottom_right_f):
 
 
 def categorizeGrid(XX,YY,MFgrid):
-    """ categorize the WHOLE grid
+    """ 
+    categorize the WHOLE grid
     -2 is cleared empty (tan)
     -1 is flagged (mine)
     0 is unknown (grass)
     1 is field containing '1'
     2 is field containing '2'
-    3 is ... """
+    3 is ... 
+    """
 
-    #XX.shape[0] will be 21 for hard and [2] is 25
-    # 24 column and 20 row fields
+    #XX.shape[0] will be 21 and XX.shape[1] will be 25 for hard difficulty
+    # i.e. 20 rows and 24 colums in the minefield
 
     for i in range(MFgrid.shape[0]):
         for j in range(MFgrid.shape[1]):
-            # vectorize this loop?
+            # use a one-liner here?
             #top_left_f = [0.0,0.0]
             #bottom_right_f = [0.0,0.0]
 
@@ -230,8 +261,15 @@ def categorizeGrid(XX,YY,MFgrid):
 
 def InitiateMinefieldGrid(difficulty,top_left,bottom_right):
     """
-    input: difficulty, top left coordinates, bottom right coordinates
-    output: Minefield grid
+    INPUT:
+        difficulty
+        top_left
+        bottom_right
+    OUTPUT:
+        XX
+        YY
+        MFgrid
+
     """
     #time.sleep(1.0) # let the animation play
 
@@ -246,27 +284,73 @@ def InitiateMinefieldGrid(difficulty,top_left,bottom_right):
         return XX, YY, MFgrid
 
 
-def AnalyzeMinefield(XX,YY,MFgrid):
+def AnalyzeFieldGrid(x,y,MFgrid,XX,YY):
+    """
+    Check whether any unknown fields surrounding a known grid field can be solved
+    INPUT:
+        x: row index in the passed MFgrid
+        y: colum index in the passed MFgrid
+            Note: the given grid cell has to be known, with a number and neighbouring unknown, unflagged cells
+        MFgrid: matrix containing minefield values
+        XX
+        YY
+    OUTPUT:
+        MFgrid: the resulting MFgrid with solved grid cells changed into respective values
+    """
 
-    for i in range(MFgrid.shape[0]):
-        for j in range(MFgrid.shape[1]):
+    paddedMFgrid = np.pad(MFgrid,1,mode='empty') # create padded MFgrid, to avoid problems with boundaries
+    nflags = 0
+    nunknown = 0
 
-
-
-            if MFgrid[i,j] == 0 and MFgrid[i-1]
-
-            try
-            # only start finding solutions if you find a green tile with neighbouring known fields
-                pass
-
-            else:
-                pass
+    xsearch = [-1,0,1]
+    ysearch = [-1,0,1]
 
 
 
 
-#run the game loop
-#def playMS():
+    # check number of flags and unknown in neighbours
+    for i in range(3):
+        for j in range(3):
+
+            if xsearch == 0 and ysearch == 0:
+                continue # dont check itself
+
+            if paddedMFgrid[x+xsearch[i],y+ysearch[j]] == -1:
+                nflags += 1
+            if paddedMFgrid[x+xsearch[i],y+ysearch[j]] == 0:
+                nunknown += 1
+    
+
+    # if unknowns and fieldval are equal, set flags on all unknown neighbouring fields
+    if nunknown == MFgrid[x,y]:
+        for i in range(3):
+            for j in range(3):
+                if paddedMFgrid[x+xsearch[i],y+ysearch[j]] == 0:
+                    MFgrid[x+xsearch[i],y+ysearch[j]] = -1
+                    # introduce a function here that actually places the flag on the field
+
+    # if number of flags is equal to number, click all surrounding unknown fields and analyze grid
+    # TO-DO: Introduce a function that only analyzes necessary fields, instead of whole grid.
+    if nflags == MFgrid[x,y]:
+        for i in range(3):
+            for j in range(3):
+                if paddedMFgrid[x+xsearch[i],y+ysearch[j]] == 0:
+                    pass
+                    # introduce here a function that actually clicks the unknown field
+
+
+def SolveGrid(XX,YY,MFgrid):
+
+    #run the game loop
+    #def runMS():
+    
+    InitiateMinefieldGrid()
+    
+    top_left,bottom_right = MSSolver.MinesweeperInitiator()
+
+    XX, YY, MFgrid = MSSolver.InitiateMinefieldGrid("hard",top_left,bottom_right)
+
+    MFgrid = MSSolver.categorizeGrid(XX,YY,MFgrid)
 
     # 1: start minesweeper
     # 1a: find the field
